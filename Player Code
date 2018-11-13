@@ -1,0 +1,332 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+
+
+public class Player : MonoBehaviour
+{
+    // Walking Speed
+    [SerializeField]
+    private float speed;
+
+    // Running Speed
+    [SerializeField]
+    private float runSpeed;
+
+    // the direction the player is facing
+    private Vector2 direction;
+
+    // Referencing the animator attached to the player GO
+    private Animator animator;
+
+    // Referencing the Rigidbody attached to the player GO
+    private Rigidbody2D myRigidBody;
+
+    private bool isAttacking = false;
+
+    private bool isCarrying = false;
+    private bool canPickUp = false;
+    private GameObject coffin;
+    public Transform player;
+
+
+    // Health Stuff
+    //Make these private and turn on the gameobject find with tag below if script gets too crowded
+    public GameObject fullHeart1;
+    public GameObject fullHeart2;
+    public GameObject fullHeart3;
+
+    public int currentScore;
+    GameObject scoreText;
+    TextMeshProUGUI playersScoreText;
+
+
+    // Use this for initialization
+    void Start()
+    {
+        myRigidBody = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>();
+
+
+        scoreText = GameObject.FindWithTag("Score");
+        playersScoreText = scoreText.GetComponent<TextMeshProUGUI>();
+
+        currentScore = 0;
+        UpdateScore();
+        // Use these if the script gets too crowded
+
+        //fullHeart1 = GameObject.FindWithTag("Full Heart 1");
+        //fullHeart2 = GameObject.FindWithTag("Full Heart 2");
+        //fullHeart3 = GameObject.FindWithTag("Full Heart 3");
+
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        if(isCarrying)
+        {
+            coffin.transform.position = player.position;
+        }
+    }
+
+    private void FixedUpdate()
+    {
+        GetInput();
+        Move();
+    }
+
+    public void AddScore(int newScoreAmount)
+    {
+        currentScore += newScoreAmount;
+        UpdateScore();
+    }
+
+    public void UpdateScore()
+    {
+        playersScoreText.text = "Score: " + currentScore;
+    }
+
+    private void GetInput()
+    {
+        // Resets the direction back to zero after the player lets go
+        direction = Vector2.zero;
+
+        if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
+        {
+            direction += Vector2.up;
+        }
+        if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
+        {
+            direction += Vector2.right;
+        }
+        if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow))
+        {
+            direction += Vector2.down;
+        }
+        if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
+        {
+            direction += Vector2.left;
+        }
+
+
+        // Need to add the Attack code here
+        // Add controller inputs here later
+        if (Input.GetKeyDown (KeyCode.I))
+        {
+            animator.SetBool("attack", true);
+            isAttacking = true;
+            StartCoroutine(Attack());
+            Debug.Log("Attacking");
+        }   
+
+        // Need to add the Pick Up code here
+        if (Input.GetKey (KeyCode.O))
+        {
+            if(canPickUp)
+            {
+                PickUp();
+            }
+            Debug.Log("Picking Up");
+        }
+
+        // Need to add the Put Down code here
+        if(Input.GetKeyDown (KeyCode.P))
+        {
+            Debug.Log("Putting Down");
+            isCarrying = false; // This works perfectly for setting down
+        }
+
+
+        // TESTING      TESTING     TESTING      TESTING     TESTING      TESTING     TESTING      TESTING 
+        // TESTING      TESTING     TESTING      TESTING     TESTING      TESTING     TESTING      TESTING 
+        // TESTING      TESTING     TESTING      TESTING     TESTING      TESTING     TESTING      TESTING     
+
+
+        if(Input.GetKeyDown (KeyCode.B))
+        {
+            currentScore += Random.Range(1, 100);
+            UpdateScore();
+
+        }
+
+        if (Input.GetKeyDown (KeyCode.G))
+        {
+
+            if (fullHeart1.activeInHierarchy == true && fullHeart2.activeInHierarchy == false &&
+               fullHeart3.activeInHierarchy == false)
+            {
+                fullHeart1.SetActive(false);
+                // Player Death Animation
+                ActivateLayer("Death Layer");
+            }
+
+
+            if (fullHeart1.activeInHierarchy == true && fullHeart2.activeInHierarchy == true &&
+               fullHeart3.activeInHierarchy == false)
+            {
+                fullHeart2.SetActive(false);
+            }
+
+
+            if (fullHeart1.activeInHierarchy == true && fullHeart2.activeInHierarchy == true &&
+               fullHeart3.activeInHierarchy == true)
+            {
+                fullHeart3.SetActive(false);
+            }
+
+
+        }
+        // TESTING      TESTING     TESTING      TESTING     TESTING      TESTING     TESTING      TESTING 
+        // TESTING      TESTING     TESTING      TESTING     TESTING      TESTING     TESTING      TESTING 
+        // TESTING      TESTING     TESTING      TESTING     TESTING      TESTING     TESTING      TESTING  
+    }
+
+    // Using the physics engine to move the player character
+    private void Move()
+    {
+        myRigidBody.velocity = direction.normalized * speed;
+        HandleLayers();
+
+
+        // Makes the player run, adjust with the run speed 
+        // Hold the left or right Shift Key with wasd or arrows
+
+        if (Input.GetKey(KeyCode.D) && Input.GetKey(KeyCode.LeftShift) || 
+            Input.GetKey (KeyCode.RightArrow) && Input.GetKey (KeyCode.LeftShift) ||
+            Input.GetKey(KeyCode.D) && Input.GetKey(KeyCode.RightShift) ||
+            Input.GetKey(KeyCode.RightArrow) && Input.GetKey(KeyCode.RightShift))
+        {
+            direction += Vector2.right;
+            myRigidBody.velocity = direction.normalized * runSpeed;
+        }
+        if (Input.GetKey(KeyCode.A) && Input.GetKey(KeyCode.LeftShift) || 
+            Input.GetKey (KeyCode.LeftArrow) && Input.GetKey (KeyCode.LeftShift) ||
+            Input.GetKey(KeyCode.A) && Input.GetKey(KeyCode.RightShift) ||
+            Input.GetKey(KeyCode.LeftArrow) && Input.GetKey(KeyCode.RightShift))
+        {
+            direction += Vector2.left;
+            myRigidBody.velocity = direction.normalized * runSpeed;
+        }
+        if (Input.GetKey(KeyCode.W) && Input.GetKey(KeyCode.LeftShift) ||
+            Input.GetKey (KeyCode.UpArrow) && Input.GetKey (KeyCode.LeftShift) ||
+            Input.GetKey(KeyCode.W) && Input.GetKey(KeyCode.RightShift) ||
+            Input.GetKey(KeyCode.UpArrow) && Input.GetKey(KeyCode.RightShift))
+        {
+            direction += Vector2.up;
+            myRigidBody.velocity = direction.normalized * runSpeed;
+        }
+        if (Input.GetKey(KeyCode.S) && Input.GetKey(KeyCode.LeftShift) ||
+            Input.GetKey (KeyCode.DownArrow) && Input.GetKey (KeyCode.LeftShift) ||
+            Input.GetKey(KeyCode.S) && Input.GetKey(KeyCode.RightShift) ||
+            Input.GetKey(KeyCode.DownArrow) && Input.GetKey(KeyCode.RightShift))
+        {
+            direction += Vector2.down;
+            myRigidBody.velocity = direction.normalized * runSpeed;
+        }
+    }
+
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if(collision.tag == "Coffin")
+        {
+            Debug.Log("I can pick up the coffin");
+            canPickUp = true;
+            coffin = collision.gameObject;
+        }
+    }
+
+    private void OnTriggerExit2D(Collider2D collision)
+    {
+        if(collision.tag == "Coffin")
+        {
+            canPickUp = false;
+            Debug.Log("I cannot pick up the coffin");
+        }
+    }
+
+
+    // When no movement buttons are pressed, the layer weight in the 
+    // animator is set to Idle layer. When moving, sets the layer to the Walk layer.
+    // Resets when button is released
+    void HandleLayers()
+    {
+        if (direction.x != 0 || direction.y != 0)
+        {
+
+            ActivateLayer("Walk Layer");
+
+            animator.SetFloat("x", direction.x);
+            animator.SetFloat("y", direction.y);
+        }
+      
+        else if(isAttacking)
+        {
+            //StartCoroutine(Attack());
+            ActivateLayer("Attack Layer");
+
+            //animator.SetBool("attack", true);
+        }
+
+
+        else if(fullHeart1.activeInHierarchy == false)
+        {
+            ActivateLayer("Death Layer");
+        }
+
+        else
+        {
+            ActivateLayer("Idle Layer");
+           // animator.SetBool("attack", false);
+        }
+
+
+    }
+
+    // Goes through all of the animation layers and assigns all of them 
+    // a string value based on the name of the layer
+    // Can then use the string name to activate and deactivate certain layers
+    // Use "ActivateLayer("Layer Name")
+    public void ActivateLayer(string layerName)
+    {
+        for (int i = 0; i < animator.layerCount; i++)
+        {
+            animator.SetLayerWeight(i, 0);
+        }
+
+        animator.SetLayerWeight(animator.GetLayerIndex(layerName), 1);
+    }
+
+
+    private IEnumerator Attack()
+    {
+        //animator.SetBool("attack", isAttacking);
+
+        //isAttacking = true;
+
+        yield return new WaitForSeconds(.2f);
+
+        StopAttacking();
+
+
+    }
+
+    public void StopAttacking()
+    {
+        isAttacking = false;
+        animator.SetBool("attack", isAttacking);
+    }
+
+    private void PickUp()
+    {
+        Debug.Log("Pick Up Code");
+        coffin.transform.SetParent(player);
+
+        isCarrying = true;
+
+        //coffin.transform.position = player.position;
+    }
+}
